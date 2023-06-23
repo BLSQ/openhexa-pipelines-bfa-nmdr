@@ -60,7 +60,7 @@ class DHIS2ImportError(Exception):
     name="Dry run",
     help="No data will be saved in the server",
     type=bool,
-    required=True,
+    required=False,
     default=True,
 )
 def push_climate_data(

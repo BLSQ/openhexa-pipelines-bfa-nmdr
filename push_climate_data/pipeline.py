@@ -97,16 +97,21 @@ def push_climate_data(
     if not r.json()["access"]["write"]:
         current_run.log_warning(f"User {username} does not have write access")
 
-    for variable in ["temperature", "precipitation", "soil_water"]:
-        if limit_variable:
-            if variable != limit_variable.lower():
-                continue
+    if limit_variable:
+        variables = [limit_variable.lower().replace(" ", "_")]
+    else:
+        variables = ["temperature", "precipitation", "soil_water"]
 
-        for frequency in ["weekly", "monthly"]:
-            if limit_frequency:
-                if frequency != limit_frequency.lower():
-                    continue
+    # monthly frequency is disabled for now as data elements are not configured
+    # in the target dhis2 instance
+    if limit_frequency:
+        if limit_frequency == "Monthly":
+            current_run.log_error("Monthly frequency is temporarily disabled")
+            raise ValueError("Monthly frequency is temporarily disabled")
+    frequencies = ["weekly"]
 
+    for variable in variables:
+        for frequency in frequencies:
             current_run.log_info(f"Preparing {variable} {frequency} data...")
 
             data_values = prepare_data_values(

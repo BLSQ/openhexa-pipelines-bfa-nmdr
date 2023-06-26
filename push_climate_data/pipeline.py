@@ -197,7 +197,8 @@ def push_dry_run(
         dry_run=True,
     )
     current_run.log_info(
-        f"Dry run: {count['imported']} imported, {count['updated']} updated, {count['ignored']} ignored, {count['deleted']} deleted"
+        f"Dry run: {count['imported']} imported, {count['updated']} updated,"
+        f" {count['ignored']} ignored, {count['deleted']} deleted"
     )
     return count
 
@@ -205,7 +206,8 @@ def push_dry_run(
 @push_climate_data.task
 def log_import_summary(prefix: str, count: dict):
     current_run.log_info(
-        f"{prefix}: {count['imported']} imported, {count['updated']} updated, {count['ignored']} ignored, {count['deleted']} deleted"
+        f"{prefix}: {count['imported']} imported, {count['updated']} updated,"
+        f" {count['ignored']} ignored, {count['deleted']} deleted"
     )
 
 
@@ -353,7 +355,7 @@ def push_data_values(
         r = session.post(
             url=f"{api_url}/dataValueSets",
             json={"dataValues": values},
-            params={"dryRun": True, "importStrategy": import_strategy},
+            params={"dryRun": dry_run, "importStrategy": import_strategy},
         )
         r.raise_for_status()
 

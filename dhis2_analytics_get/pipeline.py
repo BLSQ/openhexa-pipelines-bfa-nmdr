@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 import polars as pl
 from openhexa.sdk import current_run, parameter, pipeline, workspace
 from openhexa.toolbox.dhis2 import DHIS2
+from openhexa.toolbox.dhis2.periods import period_from_string
 
 
 @pipeline("dhis2-analytics-get", name="DHIS2 Analytics")
@@ -188,6 +189,12 @@ def get(
     dhis.analytics.MAX_DX = 50
     dhis.analytics.MAX_ORG_UNITS = 50
     dhis.analytics.MAX_PERIODS = 1
+
+    if start and end:
+        p1 = period_from_string(start)
+        p2 = period_from_string(end)
+        prange = p1.get_range(p2)
+        periods = [str(pe) for pe in prange]
 
     data_values = dhis.analytics.get(
         data_elements=data_elements,

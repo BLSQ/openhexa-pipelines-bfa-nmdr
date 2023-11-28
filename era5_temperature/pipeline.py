@@ -401,9 +401,9 @@ def merge_datasets(datafiles: List[str], agg: str = "mean") -> xr.Dataset:
         elif agg == "sum":
             ds = ds.resample(time="1D").sum()
         elif agg == "min":
-            ds = ds.resample(time="1D").sum()
+            ds = ds.resample(time="1D").min()
         elif agg == "max":
-            ds = ds.resample(time="1D").sum()
+            ds = ds.resample(time="1D").max()
         else:
             raise ValueError(f"{agg} is not a recognized aggregation method")
         datasets.append(ds)

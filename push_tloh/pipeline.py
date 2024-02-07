@@ -43,6 +43,7 @@ CATEGORY_OPTION_COMBO = "HllvX50cXC0"
 ATTRIBUTE_OPTION_COMBO = "HllvX50cXC0"
 
 
+@pipeline("push-tloh", name="push-tloh")
 @parameter(
     "dry_run_only",
     name="Dry run",
@@ -51,7 +52,6 @@ ATTRIBUTE_OPTION_COMBO = "HllvX50cXC0"
     required=False,
     default=False,
 )
-@pipeline("push-tloh", name="push-tloh")
 def push_tloh(dry_run_only: bool):
     """Load TLOH data excel files and push to DHIS2."""
     data = find_data()

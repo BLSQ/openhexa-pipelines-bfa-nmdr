@@ -128,7 +128,7 @@ def transform(fpath: str, period: str, organisation_units: pl.DataFrame) -> List
         for col, dx in DATA_ELEMENTS.items():
             if not ou:
                 current_run.log_warning(
-                    f"No org unit id for district {row["district"]}"
+                    f"No org unit id for district {row['district']}"
                 )
                 continue
             if not dx or row[col] is None:

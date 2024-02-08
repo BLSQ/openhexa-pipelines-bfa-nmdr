@@ -165,7 +165,7 @@ def push(data: List[dict]):
             organisation_units=organisation_units,
         )
 
-        current_run.log_info(f"Pushing {len(values)} for period {src['period']}")
+        current_run.log_info(f"Pushing {len(values)} values for period {src['period']}")
 
         report = dhis2.data_value_sets.post(
             data_values=values,

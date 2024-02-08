@@ -1,1 +1,2 @@
 xlsx2csv
+openhexa.toolbox>=0.1.8

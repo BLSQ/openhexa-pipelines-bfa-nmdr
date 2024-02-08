@@ -97,6 +97,7 @@ def transform(fpath: str, period: str, organisation_units: pl.DataFrame) -> List
             "skip_rows": 2,
             "new_columns": SCHEMA.keys(),
             "schema": SCHEMA,
+            "ignore_errors": True
         },
     ).drop_nulls(subset=["district"])
 

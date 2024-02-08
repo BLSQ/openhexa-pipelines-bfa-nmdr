@@ -45,17 +45,17 @@ ATTRIBUTE_OPTION_COMBO = "HllvX50cXC0"
 
 @pipeline("push-tloh", name="push-tloh")
 @parameter(
-    "dry_run_only",
+    "dry_run",
     name="Dry run",
     help="No data will be saved in the server",
     type=bool,
     required=False,
     default=False,
 )
-def push_tloh(dry_run_only: bool):
+def push_tloh(dry_run: bool):
     """Load TLOH data excel files and push to DHIS2."""
     data = find_data()
-    push(data)
+    push(data, dry_run)
 
 
 @push_tloh.task
@@ -150,7 +150,7 @@ def transform(fpath: str, period: str, organisation_units: pl.DataFrame) -> List
 
 
 @push_tloh.task
-def push(data: List[dict]):
+def push(data: List[dict], dry_run: bool):
     """Push data into DHIS2."""
     con = workspace.dhis2_connection("dhis2-pnlp")
     dhis2 = DHIS2(con)
@@ -170,7 +170,7 @@ def push(data: List[dict]):
         report = dhis2.data_value_sets.post(
             data_values=values,
             import_strategy="CREATE_AND_UPDATE",
-            dry_run=True,
+            dry_run=dry_run,
             skip_validation=True,
         )
 

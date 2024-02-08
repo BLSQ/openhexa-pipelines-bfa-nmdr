@@ -1,6 +1,7 @@
 import re
 from pathlib import Path
 from typing import List
+import traceback
 
 import polars as pl
 from openhexa.sdk import current_run, parameter, pipeline, workspace
@@ -158,24 +159,35 @@ def push(data: List[dict], dry_run: bool):
     )
 
     for src in data:
-        values = transform(
-            fpath=src["fpath"],
-            period=src["period"],
-            organisation_units=organisation_units,
-        )
 
-        current_run.log_info(f"Pushing {len(values)} values for period {src['period']}")
+        fname = src["period"].split("/")[-1]
 
-        report = dhis2.data_value_sets.post(
-            data_values=values,
-            import_strategy="CREATE_AND_UPDATE",
-            dry_run=dry_run,
-            skip_validation=True,
-        )
+        try:
 
-        current_run.log_info(
-            f"Imported: {report['imported']}, Updated: {report['updated']}, Ignored: {report['ignored']}, Deleted: {report['deleted']}"
-        )
+            current_run.log_info(f"Processing data file {fname}")
+
+            values = transform(
+                fpath=src["fpath"],
+                period=src["period"],
+                organisation_units=organisation_units,
+            )
+
+            current_run.log_info(f"Pushing {len(values)} values for period {src['period']}")
+
+            report = dhis2.data_value_sets.post(
+                data_values=values,
+                import_strategy="CREATE_AND_UPDATE",
+                dry_run=dry_run,
+                skip_validation=True,
+            )
+
+            current_run.log_info(
+                f"Imported: {report['imported']}, Updated: {report['updated']}, Ignored: {report['ignored']}, Deleted: {report['deleted']}"
+            )
+
+        except Exception:
+            current_run.log_warning(f"Could not process file {fname}")
+            current_run.log_warning(traceback.format_exc())
 
 
 if __name__ == "__main__":

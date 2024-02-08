@@ -62,7 +62,7 @@ def find_data() -> List[dict]:
         if f.name.lower().startswith("paludisme") and f.name.lower().endswith(".xlsx"):
             current_run.log_info(f"Found data file: {f.name}")
             week = re.findall(r"S(\d*)_", f.name)
-            year = re.findall(r"(\d{4}).xlsx", f.name)
+            year = re.findall(r"_(\d{4})", f.name)
             if not week:
                 current_run.log_warning("Week number not found in filename")
                 continue

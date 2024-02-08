@@ -8,26 +8,21 @@ from openhexa.toolbox.dhis2 import DHIS2
 
 ORG_UNITS_MAPPING = {
     "Barsalogo": "Barsalogho",
-    "Batié": "Batie",
     "Bogandé": "Bogande",
-    "Boussé": "Bousse",
     "Dandé": "Dande",
-    "Diébougou": "Diebougou",
     "Dédougou": "Dedougou",
-    "Dô": "Arrondissement De Dô",
-    "Fada": "Fada n'gourma",
+    "Dô": "Do",
     "Gorom - Gorom": "Gorom-Gorom",
     "Houndé": "Hounde",
-    "Karangasso Vigué": "Karankasso-Vigue",
+    "Karangasso Vigué": "Karangasso Vigue",
     "Koungoussi": "Kongoussi",
-    "Manni": "Mani",
-    "N' Dorola": "N'dorola",
-    "Nongr-Massom": "Nongremassoum",
-    "Réo": "Reo",
+    "Lena": "Léna",
+    "N' Dorola": "N'Dorola",
+    "Pô": "Po",
     "Sabou ": "Sabou",
+    "Saponé": "Sapone",
     "Sig-Nonghin": "Sig-Noghin",
-    "Séguenega": "Seguenega",
-    "Ziniaré": "Ziniare",
+    "Séguenega": "Séguénéga",
 }
 
 DATA_ELEMENTS = {
@@ -111,6 +106,10 @@ def transform(fpath: str, period: str, organisation_units: pl.DataFrame) -> List
         )
     )
 
+    df = df.with_columns(
+        pl.format("DS {}", pl.col("district")).alias("district")
+    )
+
     df = df.join(
         other=organisation_units.select(
             [pl.col("id").alias("district_uid"), pl.col("name")]
@@ -155,7 +154,7 @@ def push(data: List[dict], dry_run: bool):
     con = workspace.dhis2_connection("dhis2-pnlp")
     dhis2 = DHIS2(con)
     organisation_units = pl.DataFrame(dhis2.meta.organisation_units()).filter(
-        pl.col("level") == 5
+        pl.col("level") == 4
     )
 
     for src in data:

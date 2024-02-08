@@ -74,7 +74,7 @@ def find_data() -> List[dict]:
             if not year:
                 current_run.log_warning("Year not found in filename")
                 continue
-            data.append({"period": f"{year}W{week}", "fpath": f.as_posix()})
+            data.append({"period": f"{year[0]}W{week[0]}", "fpath": f.as_posix()})
     return data
 
 

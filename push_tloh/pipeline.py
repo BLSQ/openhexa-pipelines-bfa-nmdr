@@ -177,7 +177,7 @@ def push(data: List[dict], dry_run: bool):
 
             report = dhis2.data_value_sets.post(
                 data_values=values,
-                import_strategy="CREATE_AND_UPDATE",
+                import_strategy="CREATE",
                 dry_run=dry_run,
                 skip_validation=True,
             )

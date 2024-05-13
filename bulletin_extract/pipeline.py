@@ -7,6 +7,7 @@ from pathlib import Path
 import geopandas as gpd
 import polars as pl
 from openhexa.sdk import current_run, pipeline, workspace
+from openhexa.sdk.utils import Environment, get_environment
 from openhexa.toolbox.dhis2 import DHIS2
 from openhexa.toolbox.dhis2.periods import period_from_string
 from shapely.geometry import shape
@@ -125,6 +126,8 @@ def get_districts(org_units: pl.DataFrame) -> pl.DataFrame:
         geometry=[shape(geom) for geom in districts["geometry"].str.json_decode()],
     )
     gdf.to_parquet(dst_file, index=False)
+    if get_environment() == Environment.CLOUD_PIPELINE:
+        current_run.add_file_output(dst_file)
 
     return districts
 
@@ -198,6 +201,8 @@ def get_tloh(dhis2: DHIS2, data_elements: pl.DataFrame, districts: pl.DataFrame,
     )
 
     df.write_parquet(dst_file)
+    if get_environment() == Environment.CLOUD_PIPELINE:
+        current_run.add_file_output(dst_file)
 
     return True
 
@@ -272,6 +277,8 @@ def get_population(dhis2: DHIS2, data_elements: pl.DataFrame, districts: pl.Data
     )
 
     df.write_parquet(dst_file)
+    if get_environment() == Environment.CLOUD_PIPELINE:
+        current_run.add_file_output(dst_file)
 
     return True
 

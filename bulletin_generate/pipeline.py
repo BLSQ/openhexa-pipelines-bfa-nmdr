@@ -3,7 +3,7 @@ from pathlib import Path
 import papermill as pm
 from openhexa.sdk import current_run, pipeline, workspace
 
-NOTEBOOK_PATH = "notebooks/bulletin_automatisation/hebdomadaire/generer_le_bulletin.ipynb"
+NOTEBOOK_PATH = "notebooks/bulletin_automatisation/hebdomadaire/Automatisation_bulletin.ipynb"
 BULLETIN_PATH = "notebooks/bulletin_automatisation/hebdomadaire/report/bulletin_hebdomadaire_paludisme.docx"
 
 

@@ -28,8 +28,10 @@ def run_notebook():
         progress_bar=False,
     )
 
-    current_run.add_file_output(BULLETIN_PATH)
-    current_run.log_info(f"Generated bulletin in {BULLETIN_PATH}")
+    dst_file = Path(workspace.files_path, BULLETIN_PATH)
+    if dst_file.is_file():
+        current_run.add_file_output(dst_file.as_posix())
+        current_run.log_info(f"Generated bulletin in {BULLETIN_PATH}")
 
 
 if __name__ == "__main__":

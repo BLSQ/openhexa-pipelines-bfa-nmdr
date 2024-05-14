@@ -153,7 +153,7 @@ def get_tloh(dhis2: DHIS2, data_elements: pl.DataFrame, districts: pl.DataFrame,
     dst_file = os.path.join(workspace.files_path, "pipelines", "bulletin", "tloh.parquet")
     os.makedirs(os.path.dirname(dst_file), exist_ok=True)
 
-    start = period_from_string("2024W1")
+    start = period_from_string("2019W1")
     end = period_from_string(datetime.now().strftime("%YW%-W"))
     periods = start.get_range(end)
 
@@ -228,7 +228,7 @@ def get_population(dhis2: DHIS2, data_elements: pl.DataFrame, districts: pl.Data
     dst_file = os.path.join(workspace.files_path, "pipelines", "bulletin", "population.parquet")
     os.makedirs(os.path.dirname(dst_file), exist_ok=True)
 
-    start = period_from_string("2020")
+    start = period_from_string("2019")
     end = period_from_string(datetime.now().strftime("%Y"))
     periods = start.get_range(end)
 

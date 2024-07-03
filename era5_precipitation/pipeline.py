@@ -81,9 +81,10 @@ def era5_precipitation(download_dir, output_dir, start_date, boundaries_fp, boun
 
     boundaries = gpd.read_parquet(f"{workspace.files_path}/{boundaries_fp}")
 
-    api = Era5()
-    api.init_cdsapi()
+    con = workspace.custom_connection(CONNECTION)
+    api = Era5(url=URL, key=f"{con.API_UID}:{con.API_KEY}")
     current_run.log_info("Connected to Climate Data Store API")
+
     datafiles = download(
         api=api,
         cds_variable=VARIABLE,

@@ -1,5 +1,4 @@
 import datetime
-import json
 import logging
 import os
 import tempfile
@@ -14,7 +13,7 @@ import xarray as xr
 from api import Era5
 from dateutil.relativedelta import relativedelta
 from epiweek import EpiWeek
-from openhexa.sdk import current_run, pipeline, workspace
+from openhexa.sdk import current_run, parameter, pipeline, workspace
 from rasterio.features import rasterize
 from utils import filesystem
 
@@ -29,31 +28,40 @@ class ERA5MissingData(ERA5Error):
     pass
 
 
+CONNECTION = "climate-data-store"
+VARIABLE = "2m_temperature"
+HOURS = ["04:00", "10:00", "16:00", "22:00"]
+
+
 @pipeline("era5-temperature", name="ERA5 Temperature")
-def era5_temperature():
+@parameter("download_dir", name="Download directory", type=str, help="Directory where raw data is stored")
+@parameter("output_dir", name="Output directory", help="Directory where processed data files is stored")
+@parameter("start_date", name="Start date", help="Period start in YYYY-MM-DD format")
+@parameter("boundaries_fp", name="Boundaries", help="Boundaries geographic parquet file")
+@parameter("boundaries_uid", name="Boundaries UID", help="Column name in boundaries file with boundary UID")
+@parameter("boundaries_name", name="Boundaries name", help="Column name in boundaries file with boundary name")
+def era5_temperature(download_dir, output_dir, start_date, boundaries_fp, boundaries_uid, boundaries_name):
     """Download and aggregate temperature data from climate data store."""
-    # parse configuration
-    with open(f"{workspace.files_path}/pipelines/era5_temperature/config.json") as f:
-        config = json.load(f)
 
     # last day of previous month
     dt = datetime.datetime.now()
     dt = dt - relativedelta(months=1)
     end_date = datetime.datetime(dt.year, dt.month, monthrange(dt.year, dt.month)[1])
 
-    boundaries = gpd.read_parquet(f"{workspace.files_path}/{config['boundaries']}")
+    boundaries = gpd.read_parquet(f"{workspace.files_path}/{boundaries_fp}")
 
     api = Era5()
     api.init_cdsapi()
     current_run.log_info("Connected to Climate Data Store API")
+
     datafiles = download(
         api=api,
-        cds_variable=config["cds_variable"],
+        cds_variable=VARIABLE,
         bounds=boundaries.total_bounds,
-        start_date=datetime.datetime.strptime(config["start_date"], "%Y-%m-%d"),
+        start_date=datetime.datetime.strptime(start_date, "%Y-%m-%d"),
         end_date=end_date,
-        hours=config["hours"],
-        data_dir=os.path.join(workspace.files_path, config["download_dir"]),
+        hours=HOURS,
+        data_dir=os.path.join(workspace.files_path, download_dir),
     )
     api.close()
 
@@ -66,8 +74,8 @@ def era5_temperature():
             src_files=datafiles,
             dst_file=os.path.join(
                 workspace.files_path,
-                config["output_dir"],
-                f"{config['cds_variable']}_{agg}.nc",
+                output_dir,
+                f"{VARIABLE}_{agg}.nc",
             ),
             agg=agg,
         )
@@ -76,21 +84,21 @@ def era5_temperature():
             ds=ds,
             dst_file=os.path.join(
                 workspace.files_path,
-                config["output_dir"],
-                f"{config['cds_variable']}_{agg}_daily.parquet",
+                output_dir,
+                f"{VARIABLE}_{agg}_daily.parquet",
             ),
             boundaries=boundaries,
             meta=meta,
-            column_uid=config["column_uid"],
-            column_name=config["column_name"],
+            column_uid=boundaries_uid,
+            column_name=boundaries_name,
         )
 
         weekly(
             df=df_daily,
             dst_file=os.path.join(
                 workspace.files_path,
-                config["output_dir"],
-                f"{config['cds_variable']}_{agg}_weekly.parquet",
+                output_dir,
+                f"{VARIABLE}_{agg}_weekly.parquet",
             ),
         )
 
@@ -98,8 +106,8 @@ def era5_temperature():
             df=df_daily,
             dst_file=os.path.join(
                 workspace.files_path,
-                config["output_dir"],
-                f"{config['cds_variable']}_{agg}_monthly.parquet",
+                output_dir,
+                f"{VARIABLE}_{agg}_monthly.parquet",
             ),
         )
 
@@ -224,9 +232,7 @@ def spatial_aggregation(
         column_name=column_name,
     )
 
-    current_run.log_info(
-        f"Applied spatial aggregation for {len(boundaries)} boundaries"
-    )
+    current_run.log_info(f"Applied spatial aggregation for {len(boundaries)} boundaries")
 
     fs = filesystem(dst_file)
     with tempfile.NamedTemporaryFile(suffix=".parquet") as tmp:
@@ -253,9 +259,7 @@ def weekly(df: pd.DataFrame, dst_file: str) -> pd.DataFrame:
 def monthly(df: pd.DataFrame, dst_file: str) -> pd.DataFrame:
     """Get monthly temperature from daily dataset."""
     df_monthly = get_monthly_aggregates(df)
-    current_run.log_info(
-        f"Applied monthly aggregation ({len(df_monthly)} measurements)"
-    )
+    current_run.log_info(f"Applied monthly aggregation ({len(df_monthly)} measurements)")
     fs = filesystem(dst_file)
     with tempfile.NamedTemporaryFile(suffix=".parquet") as tmp:
         df_monthly.to_parquet(tmp.name)
@@ -338,9 +342,7 @@ def download_monthly_products(
                 logger.info(msg)
                 current_run.log_info(msg)
             else:
-                msg = (
-                    f"Missing data for period {date_.year:04}{date_.month:02}, skipping"
-                )
+                msg = f"Missing data for period {date_.year:04}{date_.month:02}, skipping"
                 logger.info(msg)
                 current_run.log_info(msg)
                 return dst_files
@@ -420,9 +422,7 @@ def merge_datasets(datafiles: List[str], agg: str = "mean") -> xr.Dataset:
     return ds
 
 
-def generate_boundaries_raster(
-    boundaries: gpd.GeoDataFrame, height: int, width: int, transform: rasterio.Affine
-):
+def generate_boundaries_raster(boundaries: gpd.GeoDataFrame, height: int, width: int, transform: rasterio.Affine):
     """Generate a binary raster mask for each boundary.
 
     Parameters
@@ -497,9 +497,7 @@ def _spatial_aggregation(
     dataframe
         Mean value as a dataframe of length (n_boundaries * n_time_steps)
     """
-    areas = generate_boundaries_raster(
-        boundaries=boundaries, height=height, width=width, transform=transform
-    )
+    areas = generate_boundaries_raster(boundaries=boundaries, height=height, width=width, transform=transform)
 
     var = [v for v in ds.data_vars][0]
 
@@ -511,11 +509,7 @@ def _spatial_aggregation(
         measurements = measurements[var].values
 
         for i, (_, row) in enumerate(boundaries.iterrows()):
-            value = np.mean(
-                measurements[
-                    (measurements >= 0) & (measurements != nodata) & (areas[i, :, :])
-                ]
-            )
+            value = np.mean(measurements[(measurements >= 0) & (measurements != nodata) & (areas[i, :, :])])
             records.append(
                 {
                     "uid": row[column_uid],
@@ -545,9 +539,7 @@ def get_weekly_aggregates(df: pd.DataFrame) -> pd.DataFrame:
         Weekly dataframe of length (n_features * n_weeks)
     """
     df_ = df.copy()
-    df_["period"] = df_["period"].apply(
-        lambda day: str(EpiWeek(datetime.datetime.strptime(day, "%Y-%m-%d")))
-    )
+    df_["period"] = df_["period"].apply(lambda day: str(EpiWeek(datetime.datetime.strptime(day, "%Y-%m-%d"))))
     df_ = df_.groupby(by=["uid", "name", "period"]).mean().reset_index()
     return df_
 
@@ -569,9 +561,7 @@ def get_monthly_aggregates(df: pd.DataFrame) -> pd.DataFrame:
         Monthly dataframe of length (n_features * n_months)
     """
     df_ = df.copy()
-    df_["period"] = df_["period"].apply(
-        lambda day: datetime.datetime.strptime(day, "%Y-%m-%d").strftime("%Y%m")
-    )
+    df_["period"] = df_["period"].apply(lambda day: datetime.datetime.strptime(day, "%Y-%m-%d").strftime("%Y%m"))
     df_ = df_.groupby(by=["uid", "name", "period"]).mean().reset_index()
     return df_
 

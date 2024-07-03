@@ -94,7 +94,6 @@ def era5_temperature(download_dir, output_dir, start_date, boundaries_fp, bounda
         hours=HOURS,
         data_dir=os.path.join(workspace.files_path, download_dir),
     )
-    api.close()
 
     meta = get_raster_metadata(datafiles)
 

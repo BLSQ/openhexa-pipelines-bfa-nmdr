@@ -34,7 +34,7 @@ VARIABLE = "total_precipitation"
 HOURS = ["00:00"]
 
 
-@pipeline("era5-precipitation", name="ERA5 Temperature")
+@pipeline("era5-precipitation", name="ERA5 Precipitation")
 @parameter(
     "download_dir",
     name="Download directory",

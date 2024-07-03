@@ -1,5 +1,4 @@
 import logging
-import os
 import warnings
 from calendar import monthrange
 from datetime import datetime
@@ -8,43 +7,26 @@ from typing import List, Tuple
 import cdsapi
 import pandas as pd
 import xarray as xr
-from openhexa.sdk.workspaces import workspace
 
 logger = logging.getLogger(__name__)
 
 
 class Era5:
-    def __init__(self, cache_dir: str = None):
+    def __init__(self, url: str, key: str, cache_dir: str = None):
         """Copernicus climate data store client.
 
         Parameters
         ----------
+        url : str
+            Climate data store URL.
+        key : str
+            API key in format `api_uid:api_key`.
         cache_dir : str, optional
             Directory to cache downloaded files.
         """
         self.cache_dir = cache_dir
-        self.cds_api_url = "https://cds.climate.copernicus.eu/api/v2"
-
-    def init_cdsapi(self):
-        """Create a .cdsapirc in the HOME directory.
-
-        The API key must have been generated in CDS web application
-        beforehand.
-        """
-        connection = workspace.custom_connection("CLIMATE-DATA-STORE")
-        cdsapirc = os.path.join(os.getenv("HOME"), ".cdsapirc")
-        with open(cdsapirc, "w") as f:
-            f.write(f"url: {self.cds_api_url}\n")
-            f.write(f"key: {connection.api_uid}:{connection.api_key}\n")
-            f.write("verify: 0")
-        logger.info(f"Created .cdsapirc at {cdsapirc}")
-        self.api = cdsapi.Client()
-
-    def close(self):
-        """Remove .cdsapirc from HOME directory."""
-        cdsapirc = os.path.join(os.getenv("HOME"), ".cdsapirc")
-        os.remove(cdsapirc)
-        logger.info(f"Removed .cdsapirc at {cdsapirc}")
+        self.url = url
+        self.client = cdsapi.Client(url=self.url, key=key, progress=False, wait_until_complete=True)
 
     def download(
         self,
@@ -91,7 +73,7 @@ class Era5:
 
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            self.api.retrieve("reanalysis-era5-land", request, dst_file)
+            self.client.retrieve("reanalysis-era5-land", request, dst_file)
             logger.info(f"Downloaded product into {dst_file}")
 
         # dataset should have data until last day of the month

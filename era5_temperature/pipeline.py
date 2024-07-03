@@ -29,6 +29,7 @@ class ERA5MissingData(ERA5Error):
 
 
 CONNECTION = "climate-data-store"
+URL = "https://cds.climate.copernicus.eu/api/v2"
 VARIABLE = "2m_temperature"
 HOURS = ["04:00", "10:00", "16:00", "22:00"]
 
@@ -52,8 +53,8 @@ def era5_temperature(download_dir, output_dir, start_date, boundaries_fp, bounda
 
     boundaries = gpd.read_parquet(f"{workspace.files_path}/{boundaries_fp}")
 
-    api = Era5()
-    api.init_cdsapi()
+    con = workspace.custom_connection(CONNECTION)
+    api = Era5(url=URL, key=f"{con.API_UID}:{con.API_KEY}")
     current_run.log_info("Connected to Climate Data Store API")
 
     datafiles = download(

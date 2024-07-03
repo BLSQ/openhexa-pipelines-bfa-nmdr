@@ -35,13 +35,41 @@ HOURS = ["04:00", "10:00", "16:00", "22:00"]
 
 
 @pipeline("era5-temperature", name="ERA5 Temperature")
-@parameter("download_dir", name="Download directory", type=str, help="Directory where raw data is stored")
-@parameter("output_dir", name="Output directory", type=str, help="Directory where processed data files is stored")
-@parameter("start_date", name="Start date", type=str, help="Period start in YYYY-MM-DD format")
-@parameter("boundaries_fp", name="Boundaries", type=str, help="Boundaries geographic parquet file")
-@parameter("boundaries_uid", name="Boundaries UID", type=str, help="Column name in boundaries file with boundary UID")
 @parameter(
-    "boundaries_name", name="Boundaries name", type=str, help="Column name in boundaries file with boundary name"
+    "download_dir",
+    name="Download directory",
+    type=str,
+    help="Directory where raw data is stored",
+    default="pipelines/era5_temperature/raw",
+)
+@parameter(
+    "output_dir",
+    name="Output directory",
+    type=str,
+    help="Directory where processed data files is stored",
+    default="pipelines/era5_temperature/output",
+)
+@parameter("start_date", name="Start date", type=str, help="Period start in YYYY-MM-DD format", default="2018-01-01")
+@parameter(
+    "boundaries_fp",
+    name="Boundaries",
+    type=str,
+    help="Boundaries geographic parquet file",
+    default="pipelines/common/input/bfa_districts.parquet",
+)
+@parameter(
+    "boundaries_uid",
+    name="Boundaries UID",
+    type=str,
+    help="Column name in boundaries file with boundary UID",
+    default="id",
+)
+@parameter(
+    "boundaries_name",
+    name="Boundaries name",
+    type=str,
+    help="Column name in boundaries file with boundary name",
+    default="name",
 )
 def era5_temperature(download_dir, output_dir, start_date, boundaries_fp, boundaries_uid, boundaries_name):
     """Download and aggregate temperature data from climate data store."""

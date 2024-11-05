@@ -99,6 +99,10 @@ def era5_extract(
         current_run.log_error(msg)
         raise ValueError(msg)
 
+    if not end_date:
+        end_date = datetime.now().strftime("%Y-%m-%d")
+        current_run.log_info(f"End date set to {end_date}")
+
     for variable in variables:
         download(
             client=cds,

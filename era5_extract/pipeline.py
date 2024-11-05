@@ -4,7 +4,6 @@ from math import ceil
 from pathlib import Path
 
 import geopandas as gpd
-import polars as pl
 from openhexa.sdk import CustomConnection, Dataset, current_run, parameter, pipeline
 from openhexa.toolbox.era5.cds import VARIABLES, Client
 
@@ -133,7 +132,7 @@ def read_boundaries(boundaries_dataset: Dataset) -> gpd.GeoDataFrame:
     ds = boundaries_dataset.latest_version
     for f in ds.files:
         if f.filename.endswith(".parquet") and "district" in f.filename:
-            boundaries = pl.read_parquet(BytesIO(f.read()))
+            boundaries = gpd.read_parquet(BytesIO(f.read()))
     if boundaries is None:
         msg = "Boundaries file not found"
         current_run.log_error(msg)

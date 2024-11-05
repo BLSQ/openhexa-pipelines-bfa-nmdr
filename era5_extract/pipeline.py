@@ -4,7 +4,14 @@ from math import ceil
 from pathlib import Path
 
 import geopandas as gpd
-from openhexa.sdk import CustomConnection, Dataset, current_run, parameter, pipeline
+from openhexa.sdk import (
+    CustomConnection,
+    Dataset,
+    current_run,
+    parameter,
+    pipeline,
+    workspace,
+)
 from openhexa.toolbox.era5.cds import VARIABLES, Client
 
 
@@ -102,6 +109,9 @@ def era5_extract(
     if not end_date:
         end_date = datetime.now().strftime("%Y-%m-%d")
         current_run.log_info(f"End date set to {end_date}")
+
+    output_dir = Path(workspace.files_path, output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
 
     for variable in variables:
         download(

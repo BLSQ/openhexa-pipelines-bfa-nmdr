@@ -6,8 +6,7 @@ from pathlib import Path
 import geopandas as gpd
 import polars as pl
 from openhexa.sdk import CustomConnection, Dataset, current_run, parameter, pipeline
-from openhexa.toolbox.era5 import VARIABLES
-from openhexa.toolbox.era5.cds import Client
+from openhexa.toolbox.era5.cds import VARIABLES, Client
 
 
 @pipeline("era5_extract", name="ERA5 Temperature Extract")

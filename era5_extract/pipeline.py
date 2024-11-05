@@ -99,7 +99,7 @@ def era5_extract(
     if download_precipitation:
         variables.append("total_precipitation")
     if download_swvl1:
-        variables.append("soil_volumetric_layer")
+        variables.append("volumetric_soil_water_layer_1")
 
     if not variables:
         msg = "No variables selected for download"

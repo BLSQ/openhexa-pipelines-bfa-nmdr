@@ -13,22 +13,6 @@ from openhexa.toolbox.dhis2.periods import period_from_string
 
 @pipeline("snt-dhis2-extract", name="SNT DHIS2 Extract")
 @parameter(
-    "download_analytics",
-    name="Download DHIS2 routine",
-    help="Download DHIS2 routine data for SNT",
-    type=bool,
-    default=False,
-    required=False,
-)
-@parameter(
-    "format_routine",
-    name="Format routine data",
-    help="Format DHIS2 data for SNT",
-    type=bool,
-    default=False,
-    required=False,
-)
-@parameter(
     "start",
     name="Period (start)",
     help="Start of DHIS2 period (YYYYMM)",
@@ -45,14 +29,6 @@ from openhexa.toolbox.dhis2.periods import period_from_string
     required=False,
 )
 @parameter(
-    "population_extract",
-    name="Extract population",
-    help="Execute DHIS2 population extract for period (start - end)",
-    type=bool,
-    default=False,
-    required=False,
-)
-@parameter(
     "shapes_extract",
     name="Extract shapes",
     help="Execute DHIS2 shapes extract",
@@ -60,25 +36,18 @@ from openhexa.toolbox.dhis2.periods import period_from_string
     default=False,
     required=False,
 )
-@parameter(
-    "pyramid_data",
-    name="Extract pyramid",
-    help="Execute DHIS2 pyramid extract",
-    type=bool,
-    default=True,
-    required=False,
-)
-def snt_dhis2_extract(download_analytics:bool, format_routine:bool, start:int, end:int, population_extract:bool, shapes_extract:bool, pyramid_data:bool):
-    """Write your pipeline orchestration here.
+def snt_dhis2_extract(start:int, end:int, shapes_extract:bool):
+    """
+    Write your pipeline orchestration here.
 
     Pipeline functions should only call tasks and should never perform IO operations or expensive computations.
     """
     # Execute line
     # openhexa pipelines run . -c '{\"download_analytics\": \"True\", \"format_routine\": \"False\", \"start\": 202310, \"end\": 202401, \"population_extract\": \"False\", \"shapes_extract\": \"False\", \"pyramid_data\": \"False\" }'
 
-    # Set paths
-    snt_root_path = os.path.join(workspace.files_path,"SNT_Process")
-    pipeline_root_path = os.path.join(workspace.files_path,"pipelines", "snt_dhis2_extract")
+    # Set fixed paths
+    snt_root_path = os.path.join(workspace.files_path, "SNT_Process")
+    pipeline_root_path = os.path.join(workspace.files_path, "pipelines", "snt_dhis2_extract")
     output_dir = os.path.join(snt_root_path, "data", "raw_DHIS2", "routine_data")
 
     # Load configuration
@@ -95,8 +64,8 @@ def snt_dhis2_extract(download_analytics:bool, format_routine:bool, start:int, e
          end=end,
          output_dir=output_dir,
          snt_config=snt_config_dict,
-         download_analytics=download_analytics,
-         run_format=format_routine,
+         download_analytics=True,
+         run_format=True,
          snt_root_path=snt_root_path,
          pipeline_root_path=pipeline_root_path,
     )
@@ -106,7 +75,7 @@ def snt_dhis2_extract(download_analytics:bool, format_routine:bool, start:int, e
          start=start, 
          end=end, 
          snt_root_path=snt_root_path,
-         population_extract=population_extract,
+         population_extract=True,
          analytics_process_ready=analytics_process_ready,
          )
         
@@ -120,7 +89,7 @@ def snt_dhis2_extract(download_analytics:bool, format_routine:bool, start:int, e
     # download country pyramid reference                      
     get_dhis2_pyramid(         
          snt_root_path=snt_root_path,
-         pyramid_data=pyramid_data,
+         pyramid_data=True,
          shapes_process_ready=shapes_process_ready,
         )
 

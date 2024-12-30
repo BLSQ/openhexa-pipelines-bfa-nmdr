@@ -31,8 +31,7 @@ def snt_dhs_extract():
             parameters=nb_parameter,
         )
     except Exception as e:
-        current_run.log_error(f"Papermill Error: {e}")
-        raise
+        current_run.log_error(f"Error: {e}")
 
 
 @snt_dhs_extract.task
@@ -50,11 +49,12 @@ def run_notebook(nb_name: str, nb_path: str, out_nb_path: str, parameters: dict)
     out_nb_full_path = os.path.join(out_nb_path, out_nb_fname)
 
     try:
-        pm.execute_notebook(
-            input_path=nb_full_path, output_path=out_nb_full_path, parameters=parameters
-        )
+        pm.execute_notebook(input_path=nb_full_path, output_path=out_nb_full_path, parameters=parameters)
+    except pm.exceptions.PapermillExecutionError as e:
+        current_run.log_error(f"R Script error: {e.evalue}")
+        raise
     except Exception as e:
-        current_run.log_error(f"Error executing notebook {type(e)}: {e}")
+        current_run.log_error(f"Unexpected error: {e}")
         raise
 
 

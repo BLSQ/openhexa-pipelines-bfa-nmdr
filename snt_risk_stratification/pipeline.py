@@ -1,6 +1,6 @@
 import os
 import papermill as pm
-from datetime import datetime 
+from datetime import datetime
 
 from openhexa.sdk import current_run, pipeline, workspace
 
@@ -11,90 +11,84 @@ def snt_risk_stratification():
 
     Pipeline functions should only call tasks and should never perform IO operations or expensive computations.
     """
+    current_run.log_info("Executing SNT EPI process.")
 
     # paths
     snt_root_path = os.path.join(workspace.files_path, "SNT_Process")
-    pipeline_path = os.path.join(workspace.files_path, "pipelines", "snt_risk_stratification")
-    current_run.log_info(f"Executing SNT risk process.")
+    pipeline_path = os.path.join(workspace.files_path, "pipelines", "snt_epi_stratification")
 
-    # Task1
-    success = run_incidence_notebook(snt_path=snt_root_path, pipeline_path=pipeline_path)   
-    
-    # Task2
-    if success:
-        run_prevalence_mortality(snt_path=snt_root_path, pipeline_path=pipeline_path, success=success)
-    else:
-        current_run.log_error(f"An error occurred during the incidence step. The SNT process has been halted.")
+    try:
+        # Task1
+        success_incidence = run_incidence(root_path=snt_root_path, pipeline_path=pipeline_path)
 
-    current_run.log_info(f"SNT process finished.")
+        # Task2
+        # run_prevalence(root_path=snt_root_path, pipeline_path=pipeline_path, success=success_incidence)
+
+    except Exception as e:
+        current_run.log_error(f"Error: {e}")
 
 
 # Task1
 @snt_risk_stratification.task
-def run_incidence_notebook(snt_path:str, pipeline_path:str):
-    
-    current_run.log_info(f"Executing SNT incidence 1/2")
+def run_incidence(root_path: str, pipeline_path: str) -> bool:
+    notebook_path = os.path.join(pipeline_path, "code")
+    notebook_out_path = os.path.join(pipeline_path, "papermill-outputs")
 
-    # set parameters for notebook
-    nb_parameter = {
-            "ROOT_PATH" : snt_path,                  
-    }                
+    parameters = {
+        "ROOT_PATH": root_path,
+    }
     try:
-        run_notebook(nb_name="SNT_1_Incidence",
-                     nb_path=os.path.join(pipeline_path, "code"), 
-                     out_nb_path=os.path.join(pipeline_path, "papermill-outputs"),
-                     parameters=nb_parameter)        
+        run_notebook(
+            nb_name="SNT_1_Incidence_NEW_EM",  # (without extension)",
+            nb_path=notebook_path,
+            out_nb_path=notebook_out_path,
+            parameters=parameters,
+        )
     except Exception as e:
-        current_run.log_error(f"Papermill Error: {e}")
-        return False
-    
-    current_run.log_info(f'Indidence results saved under: {os.path.join(snt_path, "data", "intermediate_results")}')
+        raise Exception(f"Error incidence notebook: {e}")
+
     return True
 
 
-# Task2
+# Task 2
 @snt_risk_stratification.task
-def run_prevalence_mortality(snt_path:str, pipeline_path:str, success:bool):
-    
-    current_run.log_info(f"Executing SNT prevalence step 2/2")
+def run_prevalence(root_path: str, pipeline_path: str, success: bool = True):
+    notebook_path = os.path.join(pipeline_path, "code")
+    notebook_out_path = os.path.join(pipeline_path, "papermill-outputs")
 
-    # set parameters for notebook
-    nb_parameter = {
-            "ROOT_PATH" : snt_path,                  
-    }                
+    parameters = {
+        "ROOT_PATH": root_path,
+    }
     try:
-        run_notebook(nb_name="SNT_2_Prevalence_Mortality",
-                     nb_path=os.path.join(pipeline_path, "code"), 
-                     out_nb_path=os.path.join(pipeline_path, "papermill-outputs"),
-                     parameters=nb_parameter)        
+        run_notebook(
+            nb_name="SNT_2_prevalence",  # (without extension)",
+            nb_path=notebook_path,
+            out_nb_path=notebook_out_path,
+            parameters=parameters,
+        )
     except Exception as e:
-        current_run.log_error(f"Papermill Error: {e}")
-        raise
-            
-    current_run.log_info(f'Prevalence results saved under: {os.path.join(snt_path, "data", "results")}')
+        raise Exception(f"Error prevalence notebook: {e}")
 
 
-# notebook execution helper function
-def run_notebook(nb_name:str, nb_path:str, out_nb_path:str, parameters:dict):
+def run_notebook(nb_name: str, nb_path: str, out_nb_path: str, parameters: dict):
     """
     Update a tables using the latest dataset version
-    
-    """         
+
+    """
     nb_full_path = os.path.join(nb_path, f"{nb_name}.ipynb")
     current_run.log_info(f"Executing notebook: {nb_full_path}")
 
     # out_nb_fname = os.path.basename(in_nb_dir.replace('.ipynb', ''))
-    execution_timestamp = datetime.utcnow().strftime("%Y-%m-%d_%H%M%S")   
-    out_nb_fname = f"{nb_name}_OUTPUT_{execution_timestamp}.ipynb" 
+    execution_timestamp = datetime.utcnow().strftime("%Y-%m-%d_%H%M%S")
+    out_nb_fname = f"{nb_name}_OUTPUT_{execution_timestamp}.ipynb"
     out_nb_full_path = os.path.join(out_nb_path, out_nb_fname)
 
-    try:            
-        pm.execute_notebook(input_path = nb_full_path,
-                            output_path = out_nb_full_path,
-                            parameters=parameters)
-    except Exception as e: 
-        current_run.log_error(f'Error executing notebook {type(e)}: {e}')
-        raise
+    try:
+        pm.execute_notebook(input_path=nb_full_path, output_path=out_nb_full_path, parameters=parameters)
+    except pm.exceptions.PapermillExecutionError as e:
+        raise pm.exceptions.PapermillExecutionError(f"R Script error in notebook {nb_name}: {e.evalue}")
+    except Exception as e:
+        raise Exception(f"Unexpected error while executing notebook {nb_name}: {e}")
 
 
 if __name__ == "__main__":

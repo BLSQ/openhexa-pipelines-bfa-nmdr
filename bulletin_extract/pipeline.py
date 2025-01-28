@@ -49,7 +49,7 @@ def bulletin_extract():
         os.makedirs(output_dir)
 
     con = workspace.dhis2_connection("dhis2-pnlp")
-    dhis2 = DHIS2(con)
+    dhis2 = DHIS2(con, cache_dir=Path(workspace.files_path, ".cache"))
     data_elements = get_data_elements(dhis2)
     org_units = get_org_units(dhis2)
     districts = get_districts(org_units)
@@ -96,12 +96,16 @@ def get_districts(org_units: pl.DataFrame) -> pl.DataFrame:
     )
 
     districts = districts.join(
-        other=org_units.filter(pl.col("level") == 2).select([pl.col("id"), pl.col("name").alias("region_name")]),
+        other=org_units.filter(pl.col("level") == 2).select(
+            [pl.col("id"), pl.col("name").alias("region_name")]
+        ),
         left_on="region",
         right_on="id",
         how="left",
     ).join(
-        other=org_units.filter(pl.col("level") == 3).select([pl.col("id"), pl.col("name").alias("province_name")]),
+        other=org_units.filter(pl.col("level") == 3).select(
+            [pl.col("id"), pl.col("name").alias("province_name")]
+        ),
         left_on="province",
         right_on="id",
         how="left",
@@ -119,11 +123,20 @@ def get_districts(org_units: pl.DataFrame) -> pl.DataFrame:
         ]
     )
 
+    # don't trust the geometry type in DHIS2, they can be wrong: some Polygons are actually
+    # MultiPolygons
+    shapes = []
+    for geom in districts["geometry"].str.json_decode():
+        try:
+            shapes.append(shape(geom))
+        except TypeError:
+            shapes.append(None)
+
     gdf = gpd.GeoDataFrame(
         data=districts,
         columns=districts.columns,
         crs="EPSG:4326",
-        geometry=[shape(geom) for geom in districts["geometry"].str.json_decode()],
+        geometry=shapes,
     )
     gdf.to_parquet(dst_file, index=False)
     if get_environment() == Environment.CLOUD_PIPELINE:
@@ -133,7 +146,9 @@ def get_districts(org_units: pl.DataFrame) -> pl.DataFrame:
 
 
 @bulletin_extract.task
-def get_tloh(dhis2: DHIS2, data_elements: pl.DataFrame, districts: pl.DataFrame, wait: bool) -> bool:
+def get_tloh(
+    dhis2: DHIS2, data_elements: pl.DataFrame, districts: pl.DataFrame, wait: bool
+) -> bool:
     """Get TLOH data values.
 
     Parameters
@@ -167,7 +182,9 @@ def get_tloh(dhis2: DHIS2, data_elements: pl.DataFrame, districts: pl.DataFrame,
     current_run.log_info(f"Extracted {len(df)} data values")
 
     # join data elements and org units metadata
-    df = df.join(other=data_elements.select(["id", "name"]), left_on="dx", right_on="id", how="left").join(
+    df = df.join(
+        other=data_elements.select(["id", "name"]), left_on="dx", right_on="id", how="left"
+    ).join(
         other=districts.select(
             [
                 "region_id",
@@ -208,7 +225,9 @@ def get_tloh(dhis2: DHIS2, data_elements: pl.DataFrame, districts: pl.DataFrame,
 
 
 @bulletin_extract.task
-def get_population(dhis2: DHIS2, data_elements: pl.DataFrame, districts: pl.DataFrame, wait: bool) -> bool:
+def get_population(
+    dhis2: DHIS2, data_elements: pl.DataFrame, districts: pl.DataFrame, wait: bool
+) -> bool:
     """Get TLOH data values.
 
     Parameters
@@ -244,7 +263,9 @@ def get_population(dhis2: DHIS2, data_elements: pl.DataFrame, districts: pl.Data
     current_run.log_info(f"Extracted {len(df)} data values")
 
     # join data elements and org units metadata
-    df = df.join(other=data_elements.select(["id", "name"]), left_on="dx", right_on="id", how="left").join(
+    df = df.join(
+        other=data_elements.select(["id", "name"]), left_on="dx", right_on="id", how="left"
+    ).join(
         other=districts.select(
             [
                 "region_id",

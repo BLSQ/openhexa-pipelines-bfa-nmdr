@@ -47,9 +47,7 @@ def snt_dhis2_extract(start: int, end: int, shapes_extract: bool):
 
     # Set fixed paths
     snt_root_path = os.path.join(workspace.files_path, "SNT_Process")
-    pipeline_root_path = os.path.join(
-        workspace.files_path, "pipelines", "snt_dhis2_extract"
-    )
+    pipeline_root_path = os.path.join(workspace.files_path, "pipelines", "snt_dhis2_extract")
     output_dir = os.path.join(snt_root_path, "data", "raw_DHIS2", "routine_data")
 
     # Load configuration
@@ -183,7 +181,7 @@ def get_dhis2_analytics_and_format(
             raise
 
         current_run.log_info(
-            f'SNT analytics formatted data saved under: {os.path.join(snt_root_path, "data", "formatted_data")}'
+            f"SNT analytics formatted data saved under: {os.path.join(snt_root_path, 'data', 'formatted_data')}"
         )
 
     return 0
@@ -220,9 +218,7 @@ def get_dhis2_population_and_format(
         try:
             run_notebook(
                 nb_name="DHIS2_population_extraction_format",
-                nb_path=os.path.join(
-                    workspace.files_path, "pipelines", "snt_dhis2_extract", "code"
-                ),
+                nb_path=os.path.join(workspace.files_path, "pipelines", "snt_dhis2_extract", "code"),
                 out_nb_path=os.path.join(
                     workspace.files_path,
                     "pipelines",
@@ -248,7 +244,7 @@ def get_dhis2_shapes_and_format(
     *args,
 ) -> int:
     if run_shapes_extract:
-        current_run.log_info(f"Downloading DHIS2 shapes data.")
+        current_run.log_info("Downloading DHIS2 shapes data.")
 
         # set parameters
         nb_parameter = {
@@ -259,9 +255,7 @@ def get_dhis2_shapes_and_format(
         try:
             run_notebook(
                 nb_name="DHIS2_shapes_extract_format",
-                nb_path=os.path.join(
-                    workspace.files_path, "pipelines", "snt_dhis2_extract", "code"
-                ),
+                nb_path=os.path.join(workspace.files_path, "pipelines", "snt_dhis2_extract", "code"),
                 out_nb_path=os.path.join(
                     workspace.files_path,
                     "pipelines",
@@ -275,20 +269,18 @@ def get_dhis2_shapes_and_format(
             raise
 
         # current_run.add_file_output(os.path.join(snt_root_path, "data", "raw_DHIS2", "shapes_data", f'{snt_config["RAW_INPUT_FILES"]["SHAPES_FILE"]}'))
-        current_run.log_info(
-            f'DHIS2 Shapes data saved under {os.path.join(snt_root_path, "data", "raw_DHIS2", "shapes_data")}.'
-        )
+        # current_run.log_info(
+        #     f'DHIS2 Shapes data saved under {os.path.join(snt_root_path, "data", "raw_DHIS2", "shapes_data")}.'
+        # )
 
     return 0
 
 
 # task 5
 @snt_dhis2_extract.task
-def get_dhis2_pyramid(
-    snt_root_path: str, pyramid_data: bool, shapes_process_ready: int, *args
-):
+def get_dhis2_pyramid(snt_root_path: str, pyramid_data: bool, shapes_process_ready: int, *args):
     if pyramid_data:
-        current_run.log_info(f"Downloading DHIS2 pyramid data.")
+        current_run.log_info("Downloading DHIS2 pyramid data.")
 
         # set parameters
         nb_parameter = {
@@ -299,9 +291,7 @@ def get_dhis2_pyramid(
         try:
             run_notebook(
                 nb_name="DHIS2_pyramid_extraction",
-                nb_path=os.path.join(
-                    workspace.files_path, "pipelines", "snt_dhis2_extract", "code"
-                ),
+                nb_path=os.path.join(workspace.files_path, "pipelines", "snt_dhis2_extract", "code"),
                 out_nb_path=os.path.join(
                     workspace.files_path,
                     "pipelines",
@@ -314,15 +304,11 @@ def get_dhis2_pyramid(
             current_run.log_error(f"Papermill Error: {e}")
             raise
 
-        current_run.log_info(
-            f'DHIS2 pyramid data saved under {os.path.join(snt_root_path, "configuration")}.'
-        )
+        current_run.log_info(f"DHIS2 pyramid data saved under {os.path.join(snt_root_path, 'configuration')}.")
 
 
 # Retrieve DHIS2 data
-def get(
-    start: int, end: int, output_dir: str, snt_config: dict, analytics_fname: str
-) -> str:
+def get(start: int, end: int, output_dir: str, snt_config: dict, analytics_fname: str) -> str:
     # if use_cache:
     #     cache_dir = os.path.join(workspace.files_path, "SNT_Process", ".cache")
     # else:
@@ -330,7 +316,7 @@ def get(
 
     # Check output path
     if not os.path.exists(output_dir):
-        current_run.log_error(f"SNT Output path do not exist.")
+        current_run.log_error("SNT Output path do not exist.")
         raise Exception
 
     # OH Connection
@@ -356,9 +342,7 @@ def get(
         periods = [str(pe) for pe in prange]
 
     # Unique list of data elements
-    data_elements = get_unique_data_elements(
-        snt_config["DHIS2_DATA_DEFINITIONS"]["DHIS2_INDICATOR_DEFINITIONS"]
-    )
+    data_elements = get_unique_data_elements(snt_config["DHIS2_DATA_DEFINITIONS"]["DHIS2_INDICATOR_DEFINITIONS"])
     org_unit_levels = str(snt_config["SNT_CONFIG"]["ORG_UNITS_LEVEL_EXTRACT"])
     current_run.log_info(
         f"Downloading analytics data elements: {len(data_elements)} org units: {org_unit_levels} from {start} to {end}"
@@ -386,17 +370,13 @@ def get(
     df = add_org_unit_parent_columns_SNT(dataframe=df, dhis2_instance=dhis2)
 
     # Filter district rows for BFA
-    if (snt_config["SNT_CONFIG"]["COUNTRY_CODE"] == "BFA") and (
-        "parent_level_4_name" in df.columns
-    ):
+    if (snt_config["SNT_CONFIG"]["COUNTRY_CODE"] == "BFA") and ("parent_level_4_name" in df.columns):
         df = df[df["parent_level_4_name"].str.startswith("DS")]
 
     # Select columns to be used
     fixed_cols = ["dx", "co", "ou", "pe", "value", "dx_name", "co_name", "ou_name"]
     parent_cols = [
-        f"parent_level_{i}_{suffix}"
-        for i in range(1, (int(org_unit_levels) + 1))
-        for suffix in ["id", "name"]
+        f"parent_level_{i}_{suffix}" for i in range(1, (int(org_unit_levels) + 1)) for suffix in ["id", "name"]
     ]
     df = df[fixed_cols + parent_cols]
 
@@ -426,9 +406,7 @@ def run_notebook(nb_name: str, nb_path: str, out_nb_path: str, parameters: dict)
     out_nb_full_path = os.path.join(out_nb_path, out_nb_fname)
 
     try:
-        pm.execute_notebook(
-            input_path=nb_full_path, output_path=out_nb_full_path, parameters=parameters
-        )
+        pm.execute_notebook(input_path=nb_full_path, output_path=out_nb_full_path, parameters=parameters)
     except Exception as e:
         current_run.log_error(f"Error executing the notebook {type(e)}: {e}")
         raise
@@ -484,9 +462,7 @@ def add_org_unit_parent_columns_SNT(
     for lvl in range(1, len(levels)):
         org_units = org_units.with_columns(
             pl.col("path")
-            .map_elements(
-                lambda path: _get_uid_from_level_SNT(path, lvl), return_dtype=pl.Utf8
-            )
+            .map_elements(lambda path: _get_uid_from_level_SNT(path, lvl), return_dtype=pl.Utf8)
             .alias(f"parent_level_{lvl}_id")
         )
 
@@ -503,9 +479,7 @@ def add_org_unit_parent_columns_SNT(
         )
 
     df = df.join(
-        other=org_units.select(
-            ["id"] + [col for col in org_units.columns if col.startswith("parent_")]
-        ),
+        other=org_units.select(["id"] + [col for col in org_units.columns if col.startswith("parent_")]),
         how="left",
         left_on=org_unit_id_column,
         right_on="id",

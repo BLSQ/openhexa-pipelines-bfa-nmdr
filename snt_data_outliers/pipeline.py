@@ -5,69 +5,44 @@ from datetime import datetime
 from openhexa.sdk import current_run, pipeline, workspace
 
 
-@pipeline("snt-risk-stratification", name="snt_risk_stratification")
-def snt_risk_stratification():
+@pipeline("snt-data-outliers", name="SNT Outliers Detection")
+def snt_data_outliers():
     """Write your pipeline orchestration here.
 
     Pipeline functions should only call tasks and should never perform IO operations or expensive computations.
     """
-    current_run.log_info("Executing SNT EPI process.")
+    current_run.log_info("Executing SNT data outliers detection process.")
 
     # paths
     snt_root_path = os.path.join(workspace.files_path, "SNT_Process")
-    pipeline_path = os.path.join(workspace.files_path, "pipelines", "snt_risk_stratification")
+    pipeline_path = os.path.join(workspace.files_path, "pipelines", "snt_data_outliers")
 
     try:
-        # Task1
-        success_incidence = run_incidence(root_path=snt_root_path, pipeline_path=pipeline_path)
-
-        # Task2
-        run_prevalence(root_path=snt_root_path, pipeline_path=pipeline_path, success=success_incidence)
-
+        # Task 1: Outliers detection
+        run_outliers(pipeline_path=pipeline_path, snt_path=snt_root_path)
     except Exception as e:
         current_run.log_error(f"Error: {e}")
 
 
-# Task1
-@snt_risk_stratification.task
-def run_incidence(root_path: str, pipeline_path: str) -> bool:
+@snt_data_outliers.task
+def run_outliers(pipeline_path: str, snt_path: str):
     notebook_path = os.path.join(pipeline_path, "code")
     notebook_out_path = os.path.join(pipeline_path, "papermill-outputs")
 
     parameters = {
-        "ROOT_PATH": root_path,
+        "ROOT_PATH": snt_path,
     }
     try:
         run_notebook(
-            nb_name="SNT_1_Incidence",  # (without extension)",
+            nb_name="SNT_1_outliers_detection",
             nb_path=notebook_path,
             out_nb_path=notebook_out_path,
             parameters=parameters,
         )
     except Exception as e:
-        raise Exception(f"Error incidence notebook: {e}")
+        raise Exception(f"Error in outliers detection: {e}")
 
     return True
-
-
-# Task 2
-@snt_risk_stratification.task
-def run_prevalence(root_path: str, pipeline_path: str, success: bool = True):
-    notebook_path = os.path.join(pipeline_path, "code")
-    notebook_out_path = os.path.join(pipeline_path, "papermill-outputs")
-
-    parameters = {
-        "ROOT_PATH": root_path,
-    }
-    try:
-        run_notebook(
-            nb_name="SNT_2_Prevalence_Mortality",  # (without extension)",
-            nb_path=notebook_path,
-            out_nb_path=notebook_out_path,
-            parameters=parameters,
-        )
-    except Exception as e:
-        raise Exception(f"Error prevalence notebook: {e}")
 
 
 def run_notebook(nb_name: str, nb_path: str, out_nb_path: str, parameters: dict):
@@ -86,10 +61,12 @@ def run_notebook(nb_name: str, nb_path: str, out_nb_path: str, parameters: dict)
     try:
         pm.execute_notebook(input_path=nb_full_path, output_path=out_nb_full_path, parameters=parameters)
     except pm.exceptions.PapermillExecutionError as e:
-        raise pm.exceptions.PapermillExecutionError(f"R Script error in notebook {nb_name}: {e.evalue}")
+        # current_run.log_error(f"R Script error: {e.evalue}")
+        raise pm.exceptions.PapermillExecutionError(f"R Script error: {e.evalue}")
     except Exception as e:
-        raise Exception(f"Unexpected error while executing notebook {nb_name}: {e}")
+        # current_run.log_error(f"Unexpected error: {e}")
+        raise Exception(f"Unexpected error: {e}")
 
 
 if __name__ == "__main__":
-    snt_risk_stratification()
+    snt_data_outliers()

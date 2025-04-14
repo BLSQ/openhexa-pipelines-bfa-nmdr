@@ -92,8 +92,21 @@ DATA_ELEMENTS = [
     "dgRfLQYXTC5",
 ]
 
+# all regions
 ORG_UNITS = [
-    "zmSNCYjqQGj"  # Country
+    "awG7snlrjVy",
+    "NMTk6usvgPW",
+    "WXDW5h0TFmT",
+    "C9M7mlhBZcI",
+    "CrqTIkTFSWU",
+    "TMFuUYJyGPX",
+    "uaydHJWFFCV",
+    "mNbmpbo6Oh3",
+    "x35OtBOWemw",
+    "QbUydxr5PH1",
+    "RAtbr3qeN3Q",
+    "Oh2EALVR2Pa",
+    "t8cSsU8HYBT",
 ]
 
 
@@ -121,13 +134,16 @@ ORG_UNITS = [
 )
 def microstratification_extract(src_dhis2: DHIS2Connection, start_date: str, dst_file: str):
     dhis2 = DHIS2(src_dhis2, cache_dir=Path(workspace.files_path, ".cache"))
-    dhis2.data_value_sets.MAX_DATA_ELEMENTS = 10
+    dhis2.data_value_sets.MAX_DATA_ELEMENTS = 3
+    dhis2.data_value_sets.MAX_ORG_UNITS = 1
 
     dst_file = Path(workspace.files_path, dst_file)
     dst_file.parent.mkdir(parents=True, exist_ok=True)
 
     start_date = datetime.strptime(start_date, "%Y-%m-%d")
     end_date = datetime.now()
+
+    data_elements = filter_data_elements(dhis2=dhis2, data_elements=DATA_ELEMENTS)
 
     msg = (
         f"Extracting data from {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}"
@@ -136,7 +152,7 @@ def microstratification_extract(src_dhis2: DHIS2Connection, start_date: str, dst
 
     df = extract(
         dhis2=dhis2,
-        data_elements=DATA_ELEMENTS,
+        data_elements=data_elements,
         start_date=start_date,
         end_date=end_date,
         dst_file=dst_file,
@@ -146,6 +162,24 @@ def microstratification_extract(src_dhis2: DHIS2Connection, start_date: str, dst
     df = enrich(dhis2=dhis2, data=df)
 
     write(df=df, dst_file=dst_file)
+
+
+@microstratification_extract.task
+def filter_data_elements(
+    dhis2: DHIS2,
+    data_elements: list[str],
+) -> list[str]:
+    """Filter data elements that do not exist in the target DHIS2 instance."""
+    data_elements_meta = get_data_elements(dhis2)
+
+    new_data_elements = []
+    for dx in data_elements:
+        if dx not in data_elements_meta["id"].to_list():
+            msg = f"Ignoring data element {dx} as it does not exist in the DHIS2 instance"
+            current_run.log_info(msg)
+        new_data_elements.append(dx)
+
+    return new_data_elements
 
 
 @microstratification_extract.task
@@ -166,7 +200,6 @@ def extract(
     if last_updated is None or days_since_last_update >= 180:
         data = []
         for start, end in monthly_chunks(start_date, end_date):
-            print("start")
             data.append(
                 extract_data_elements(
                     dhis2=dhis2,

@@ -14,6 +14,7 @@ ORG_UNITS_MAPPING = {
     "Dédougou": "Dedougou",
     "Dô": "Do",
     "Gorom - Gorom": "Gorom-Gorom",
+    "Gorom - G": "Gorom-Gorom",
     "Houndé": "Hounde",
     "Karangasso Vigué": "Karangasso Vigue",
     "Koungoussi": "Kongoussi",
@@ -27,19 +28,19 @@ ORG_UNITS_MAPPING = {
 }
 
 DATA_ELEMENTS = {
-    "cas paludisme simple": "WMEobIgu0C0",
-    "cas paludisme simple (moins de 5 ans)": "CxaBUf1kGii",
-    "cas paludisme grave": "lgWEVH7N60g",
-    "cas paludisme grave (moins de 5 ans)": "ojgfmfvRrvm",
-    "décès": "f5VQrPSuCKd",
-    "décès (moins de 5 ans)": "H9rBsV1fmDh",
+    "attendus (public)": "fCiDBUUmImL",
+    "reçus (public)": "ooooZwxeTtf",
+    "reçus à temps (public)": "kDCchX7IxKl",
+    "attendus (privé)": "FHiDTOEvPjp",
+    "reçus (privé)": "mKmHKlH5a6g",
+    "reçus à temps (privé)": "mHuPc0rYC01",
 }
 
 CATEGORY_OPTION_COMBO = "HllvX50cXC0"
 ATTRIBUTE_OPTION_COMBO = "HllvX50cXC0"
 
 
-@pipeline("push-tloh")
+@pipeline("push-tloh-completeness")
 @parameter(
     "dry_run",
     name="Dry run",
@@ -48,19 +49,19 @@ ATTRIBUTE_OPTION_COMBO = "HllvX50cXC0"
     required=False,
     default=False,
 )
-def push_tloh(dry_run: bool):
+def push_tloh_completeness(dry_run: bool):
     """Load TLOH data excel files and push to DHIS2."""
     data = find_data()
     push(data, dry_run)
 
 
-@push_tloh.task
+@push_tloh_completeness.task
 def find_data() -> List[dict]:
     """Find xlsx data files in workspace."""
     data = []
     data_dir = Path(workspace.files_path, "TLOH", "Data").absolute()
     for f in data_dir.iterdir():
-        if f.name.lower().startswith("paludisme") and f.name.lower().endswith(".xlsx"):
+        if f.name.lower().startswith("tloh") and f.name.lower().endswith(".xlsx"):
             current_run.log_info(f"Found data file: {f.name}")
             week = re.findall(r"S(\d*)_", f.name)
             year = re.findall(r"_(\d{4})", f.name)
@@ -77,30 +78,27 @@ def find_data() -> List[dict]:
 def transform(fpath: str, period: str, organisation_units: pl.DataFrame) -> List[dict]:
     """Load and transform source excel file into a list of DHIS2 data values."""
 
-    SCHEMA = {
-        "region": pl.Utf8,
-        "district": pl.Utf8,
-        "population": pl.Int32,
-        "cas paludisme simple": pl.Int32,
-        "cas paludisme simple (moins de 5 ans)": pl.Int32,
-        "cas paludisme grave": pl.Int32,
-        "cas paludisme grave (moins de 5 ans)": pl.Int32,
-        "décès": pl.Int32,
-        "décès (moins de 5 ans)": pl.Int32,
-    }
-
     df = pl.read_excel(
         fpath,
         sheet_id=1,
         engine="xlsx2csv",
         engine_options={"skip_empty_lines": True},
-        read_options={
-            "skip_rows": 2,
-            "new_columns": SCHEMA.keys(),
-            "schema": SCHEMA,
-            "ignore_errors": True,
-        },
-    ).drop_nulls(subset=["district"])
+        read_options={"skip_rows": 2, "ignore_errors": True},
+    )
+
+    df = df.select(
+        [
+            pl.col("0").alias("district"),
+            pl.col("TLOH Attendus").alias("attendus (public)"),
+            pl.col("TLOH Reçus").alias("reçus (public)"),
+            pl.col("TLOH Reçus à Temps").alias("reçus à temps (public)"),
+            pl.col("TLOH Attendus0").alias("attendus (privé)"),
+            pl.col("TLOH Reçus0").alias("reçus (privé)"),
+            pl.col("TLOH Reçus à Temps0").alias("reçus à temps (privé)"),
+        ]
+    )
+
+    df = df.drop_nulls(subset=["district"])
 
     df = df.with_columns(
         pl.col("district").replace(
@@ -145,7 +143,7 @@ def transform(fpath: str, period: str, organisation_units: pl.DataFrame) -> List
     return data_values
 
 
-@push_tloh.task
+@push_tloh_completeness.task
 def push(data: List[dict], dry_run: bool):
     """Push data into DHIS2."""
     con = workspace.dhis2_connection("dhis2-pnlp")
@@ -183,4 +181,4 @@ def push(data: List[dict], dry_run: bool):
 
 
 if __name__ == "__main__":
-    push_tloh()
+    push_tloh_completeness()
